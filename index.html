@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Blockchain Event Ticketing DApp">
+	<link rel="icon" type="image/png" href="favicon.png">
+	<title>Blockchain Event Ticketing</title>
+	<style>
+		:root {
+			--ink: #182230;
+			--muted: #687386;
+			--paper: #f5f7fa;
+			--surface: #ffffff;
+			--line: #dce2ea;
+			--blue: #1769e0;
+			--blue-dark: #0e4da9;
+			--orange: #f28c28;
+			--green: #159570;
+			--danger: #d84a4a;
+			--shadow: 0 18px 45px rgba(28, 47, 72, 0.09);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			position: relative;
+			overflow-x: hidden;
+			min-height: 100vh;
+			margin: 0;
+			color: var(--ink);
+			background:
+				linear-gradient(115deg, transparent 0 38%, rgba(23, 105, 224, 0.045) 38.1% 38.3%, transparent 38.4%),
+				linear-gradient(292deg, transparent 0 62%, rgba(242, 140, 40, 0.05) 62.1% 62.3%, transparent 62.4%),
+				linear-gradient(135deg, rgba(23, 105, 224, 0.1), transparent 34%),
+				linear-gradient(315deg, rgba(242, 140, 40, 0.1), transparent 30%),
+				var(--paper);
+			font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+			background-attachment: fixed;
+		}
+
+		body::before {
+			position: fixed;
+			inset: 0;
+			z-index: 0;
+			background-image:
+				linear-gradient(rgba(23, 105, 224, 0.04) 1px, transparent 1px),
+				linear-gradient(90deg, rgba(23, 105, 224, 0.04) 1px, transparent 1px),
+				repeating-linear-gradient(135deg, transparent 0 110px, rgba(255, 255, 255, 0.25) 111px 112px, transparent 113px 220px);
+			background-size: 32px 32px, 32px 32px, 440px 440px;
+			content: "";
+			mask-image: linear-gradient(to bottom, black, rgba(0, 0, 0, 0.72) 50%, transparent 100%);
+			pointer-events: none;
+		}
+
+		body::after {
+			position: fixed;
+			top: -20%;
+			right: -12%;
+			z-index: 0;
+			width: 52vw;
+			height: 145vh;
+			border-left: 1px solid rgba(23, 105, 224, 0.1);
+			border-right: 1px solid rgba(242, 140, 40, 0.1);
+			background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+			content: "";
+			transform: rotate(18deg);
+			animation: background-drift 18s ease-in-out infinite alternate;
+			pointer-events: none;
+		}
+
+		.fps-backdrop {
+			position: fixed;
+			inset: 0;
+			z-index: 0;
+			overflow: hidden;
+			pointer-events: none;
+		}
+
+		.fps-backdrop::before {
+			position: absolute;
+			top: 34%;
+			left: 0;
+			width: 100%;
+			height: 1px;
+			background: linear-gradient(90deg, transparent, rgba(23, 105, 224, 0.32), rgba(242, 140, 40, 0.32), transparent);
+			box-shadow: 0 0 18px rgba(23, 105, 224, 0.24);
+			content: "";
+		}
+
+		.fps-backdrop::after {
+			position: absolute;
+			top: 34%;
+			left: -15%;
+			width: 130%;
+			height: 110%;
+			background-image:
+				linear-gradient(rgba(23, 105, 224, 0.1) 1px, transparent 1px),
+				linear-gradient(90deg, rgba(23, 105, 224, 0.1) 1px, transparent 1px);
+			background-size: 100% 52px, 74px 100%;
+			transform: perspective(270px) rotateX(62deg);
+			transform-origin: top center;
+			animation: floor-flight 3.2s linear infinite;
+			content: "";
+			mask-image: linear-gradient(to bottom, transparent, black 18%, black 78%, transparent);
+		}
+
+		.fps-crosshair {
+			position: absolute;
+			top: 34%;
+			left: 50%;
+			width: 34px;
+			height: 34px;
+			border: 1px solid rgba(23, 105, 224, 0.16);
+			border-radius: 50%;
+			box-shadow: 0 0 0 9px rgba(23, 105, 224, 0.025);
+			transform: translate(-50%, -50%);
+		}
+
+		.fps-crosshair::before,
+		.fps-crosshair::after {
+			position: absolute;
+			background: rgba(23, 105, 224, 0.2);
+			content: "";
+		}
+
+		.fps-crosshair::before {
+			top: 16px;
+			left: -8px;
+			width: 50px;
+			height: 1px;
+		}
+
+		.fps-crosshair::after {
+			top: -8px;
+			left: 16px;
+			width: 1px;
+			height: 50px;
+		}
+
+		@keyframes floor-flight {
+			from { background-position: 0 0, 0 0; }
+			to { background-position: 0 52px, 0 0; }
+		}
+
+		@keyframes background-drift {
+			from { transform: translateX(-3%) rotate(18deg); }
+			to { transform: translateX(3%) rotate(18deg); }
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			*, *::before, *::after {
+				animation-duration: 0.01ms !important;
+				animation-iteration-count: 1 !important;
+				scroll-behavior: auto !important;
+				transition-duration: 0.01ms !important;
+			}
+		}
+
+		.shell {
+			position: relative;
+			z-index: 1;
+			width: min(1120px, calc(100% - 40px));
+			margin: 0 auto;
+		}
+
+		.access-screen[hidden],
+		#appShell[hidden] {
+			display: none;
+		}
+
+		.access-screen {
+			position: relative;
+			z-index: 1;
+			display: grid;
+			min-height: 100vh;
+			padding: 40px 20px;
+			place-items: center;
+		}
+
+		.access-shell {
+			width: min(980px, 100%);
+		}
+
+		.access-brand {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 70px;
+		}
+
+		.access-brand-mark {
+			display: grid;
+			width: 48px;
+			height: 48px;
+			place-items: center;
+			color: white;
+			background: var(--blue);
+			border-radius: 14px 14px 14px 4px;
+			font-weight: 800;
+			box-shadow: 0 12px 24px rgba(23, 105, 224, 0.22);
+		}
+
+		.access-brand h1 {
+			margin: 0 0 3px;
+			font-size: 1.1rem;
+		}
+
+		.access-brand p {
+			margin: 0;
+			color: var(--muted);
+			font-size: 0.72rem;
+			letter-spacing: 0.13em;
+			text-transform: uppercase;
+		}
+
+		.access-copy {
+			max-width: 650px;
+			margin-bottom: 34px;
+		}
+
+		.access-copy .eyebrow {
+			margin-bottom: 14px;
+			color: var(--blue);
+		}
+
+		.access-copy h2 {
+			margin: 0 0 14px;
+			font-size: clamp(2.4rem, 6vw, 5rem);
+			line-height: 0.95;
+			letter-spacing: -0.04em;
+		}
+
+		.access-copy > p:last-child {
+			max-width: 520px;
+			margin: 0;
+			color: var(--muted);
+			line-height: 1.6;
+		}
+
+		.access-options {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 18px;
+		}
+
+		.access-option {
+			display: grid;
+			min-height: 220px;
+			padding: 26px;
+			color: var(--ink);
+			text-align: left;
+			background: rgba(255, 255, 255, 0.84);
+			border: 1px solid var(--line);
+			border-radius: 10px;
+			box-shadow: var(--shadow);
+		}
+
+		.access-option:hover {
+			color: white;
+			background: var(--blue);
+			border-color: var(--blue);
+			box-shadow: 0 22px 45px rgba(23, 105, 224, 0.24);
+			transform: translateY(-4px);
+		}
+
+		.access-option.admin:hover {
+			background: var(--orange);
+			border-color: var(--orange);
+			box-shadow: 0 22px 45px rgba(242, 140, 40, 0.24);
+		}
+
+		.access-option-icon {
+			display: grid;
+			width: 42px;
+			height: 42px;
+			margin-bottom: 28px;
+			place-items: center;
+			color: white;
+			background: var(--blue);
+			border-radius: 8px;
+			font-weight: 800;
+		}
+
+		.access-option.admin .access-option-icon {
+			background: var(--orange);
+		}
+
+		.access-option:hover .access-option-icon,
+		.access-option.admin:hover .access-option-icon {
+			color: var(--blue);
+			background: white;
+		}
+
+		.access-option h3 {
+			margin: 0 0 8px;
+			font-size: 1.3rem;
+		}
+
+		.access-option p {
+			margin: 0;
+			color: var(--muted);
+			line-height: 1.5;
+		}
+
+		.access-option:hover p {
+			color: rgba(255, 255, 255, 0.84);
+		}
+
+		.access-option-arrow {
+			align-self: end;
+			justify-self: end;
+			font-size: 1.4rem;
+		}
+
+		#switchRoleBtn {
+			padding: 8px 11px;
+			color: var(--muted);
+			background: transparent;
+			font-size: 0.8rem;
+		}
+
+		#switchRoleBtn:hover {
+			color: var(--ink);
+			background: #eef2f7;
+			box-shadow: none;
+			transform: none;
+		}
+
+		header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 24px;
+			padding: 26px 0;
+			border-bottom: 1px solid rgba(220, 226, 234, 0.85);
+			animation: reveal 600ms ease both;
+		}
+
+		@keyframes reveal {
+			from { opacity: 0; transform: translateY(-10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.brand {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+		}
+
+		.brand-mark {
+			display: grid;
+			width: 42px;
+			height: 42px;
+			place-items: center;
+			color: white;
+			background: var(--blue);
+			border-radius: 12px 12px 12px 3px;
+			font-weight: 800;
+		}
+
+		h1, h2, p {
+			margin-top: 0;
+		}
+
+		h1 {
+			margin-bottom: 3px;
+			font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+			letter-spacing: 0.02em;
+		}
+
+		.eyebrow {
+			margin: 0;
+			color: var(--muted);
+			font-size: 0.77rem;
+			letter-spacing: 0.13em;
+			text-transform: uppercase;
+		}
+
+		.wallet-controls {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: 12px;
+		}
+
+		button {
+			position: relative;
+			overflow: hidden;
+			border: 0;
+			border-radius: 8px;
+			color: white;
+			background: var(--blue);
+			cursor: pointer;
+			font: inherit;
+			font-weight: 700;
+			transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+		}
+
+		button::after {
+			position: absolute;
+			top: 0;
+			left: -100%;
+			width: 70%;
+			height: 100%;
+			background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+			content: "";
+			transform: skewX(-20deg);
+			transition: left 500ms ease;
+		}
+
+		button:hover {
+			background: var(--blue-dark);
+			box-shadow: 0 8px 18px rgba(23, 105, 224, 0.22);
+			transform: translateY(-2px);
+		}
+
+		button:hover::after {
+			left: 130%;
+		}
+
+		button:active {
+			transform: translateY(0) scale(0.98);
+		}
+
+		button:disabled {
+			cursor: wait;
+			opacity: 0.72;
+			transform: none;
+		}
+
+		button:focus-visible, input:focus-visible {
+			outline: 3px solid rgba(23, 105, 224, 0.28);
+			outline-offset: 2px;
+		}
+
+		#connectWalletBtn {
+			padding: 11px 16px;
+		}
+
+		#walletAddress {
+			max-width: 180px;
+			overflow: hidden;
+			color: var(--muted);
+			font-family: Consolas, monospace;
+			font-size: 0.8rem;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		main {
+			padding: 54px 0 64px;
+		}
+
+		.intro {
+			max-width: 680px;
+			margin-bottom: 32px;
+		}
+
+		.intro h2 {
+			margin-bottom: 10px;
+			font-size: clamp(2rem, 5vw, 3.8rem);
+			line-height: 0.98;
+		}
+
+		.intro p {
+			margin-bottom: 0;
+			color: var(--muted);
+			font-size: 1.02rem;
+			line-height: 1.6;
+		}
+
+		.content-grid {
+			display: grid;
+			grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.85fr);
+			gap: 22px;
+		}
+
+		.panel {
+			padding: 26px;
+			background: var(--surface);
+			border: 1px solid var(--line);
+			border-radius: 10px;
+			box-shadow: var(--shadow);
+			animation: reveal 700ms 100ms ease both;
+		}
+
+		.panel:hover {
+			border-color: rgba(23, 105, 224, 0.28);
+			box-shadow: 0 22px 52px rgba(28, 47, 72, 0.13);
+			transition: border-color 180ms ease, box-shadow 180ms ease;
+		}
+
+		.panel h3 {
+			margin: 0 0 20px;
+			font-size: 1.05rem;
+		}
+
+		.event-card {
+			display: grid;
+			grid-template-columns: 150px 1fr;
+			gap: 22px;
+			align-items: center;
+		}
+
+		#eventImage {
+			width: 100%;
+			aspect-ratio: 1 / 1;
+			display: block;
+			object-fit: cover;
+			border-radius: 8px;
+			background: #e8edf4;
+		}
+
+		.event-details h4 {
+			margin: 0 0 12px;
+			font-size: 1.45rem;
+		}
+
+		.event-details p {
+			margin: 7px 0;
+			color: var(--muted);
+			line-height: 1.45;
+		}
+
+		.event-details strong {
+			color: var(--ink);
+		}
+
+		#ticketProgress {
+			color: var(--ink);
+			font-weight: 700;
+		}
+
+		.action-row {
+			display: flex;
+			align-items: end;
+			gap: 12px;
+			margin-top: 24px;
+		}
+
+		#buyTicketBtn {
+			flex: 1;
+			padding: 13px 18px;
+		}
+
+		.purchase-controls {
+			display: flex;
+			align-items: end;
+			gap: 12px;
+			margin-top: 24px;
+		}
+
+		.quantity-field {
+			width: 110px;
+			flex: 0 0 110px;
+		}
+
+		.quantity-field label {
+			margin-bottom: 8px;
+		}
+
+		#ticketQuantity {
+			padding: 12px 10px;
+		}
+
+		#myTicketsBtn {
+			padding: 13px 16px;
+			color: var(--blue);
+			background: #e8efff;
+		}
+
+		#myTicketsBtn:hover {
+			color: white;
+			background: var(--blue);
+		}
+
+		label {
+			display: block;
+			margin-bottom: 8px;
+			color: var(--muted);
+			font-size: 0.8rem;
+			font-weight: 700;
+			letter-spacing: 0.04em;
+			text-transform: uppercase;
+		}
+
+		input {
+			width: 100%;
+			padding: 12px 13px;
+			color: var(--ink);
+			background: #fbfcfe;
+			border: 1px solid var(--line);
+			border-radius: 7px;
+			font: inherit;
+		}
+
+		#admitTicketBtn {
+			width: 100%;
+			padding: 12px 16px;
+			background: var(--orange);
+		}
+
+		#admitTicketBtn:hover {
+			background: #d87516;
+		}
+
+		.pending-tickets {
+			margin-top: 24px;
+			padding-top: 20px;
+			border-top: 1px solid var(--line);
+		}
+
+		.pending-tickets-heading {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			margin-bottom: 12px;
+		}
+
+		.pending-tickets-heading h4 {
+			margin: 0;
+			font-size: 0.9rem;
+		}
+
+		.pending-count {
+			padding: 4px 8px;
+			color: white;
+			background: var(--orange);
+			border-radius: 99px;
+			font-size: 0.75rem;
+			font-weight: 800;
+		}
+
+		.pending-count.empty {
+			background: var(--green);
+		}
+
+		.pending-tickets-list {
+			display: grid;
+			gap: 7px;
+			max-height: 190px;
+			margin: 0;
+			padding: 0;
+			overflow-y: auto;
+			list-style: none;
+		}
+
+		.pending-ticket-button {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			width: 100%;
+			padding: 10px 12px;
+			color: var(--ink);
+			background: #f8fafc;
+			border: 1px solid var(--line);
+			text-align: left;
+		}
+
+		.pending-ticket-button:hover {
+			color: var(--blue);
+			background: #eef4ff;
+			border-color: rgba(23, 105, 224, 0.35);
+			box-shadow: none;
+			transform: none;
+		}
+
+		.pending-ticket-seat {
+			font-weight: 800;
+		}
+
+		.pending-ticket-wallet {
+			color: var(--muted);
+			font-family: Consolas, monospace;
+			font-size: 0.72rem;
+		}
+
+		.pending-empty {
+			margin: 0;
+			color: var(--muted);
+			font-size: 0.82rem;
+		}
+
+		.logs-panel {
+			grid-column: 1 / -1;
+		}
+
+		#eventLogs {
+			display: grid;
+			gap: 10px;
+			min-height: 86px;
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		.log-item {
+			padding: 13px 15px;
+			color: var(--muted);
+			background: #f8fafc;
+			border-left: 3px solid var(--blue);
+			font-size: 0.9rem;
+			animation: log-in 300ms ease both;
+		}
+
+		.log-item[data-type="error"] {
+			border-left-color: var(--danger);
+		}
+
+		@keyframes log-in {
+			from { opacity: 0; transform: translateY(-6px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.empty-log {
+			display: grid;
+			min-height: 60px;
+			place-items: center;
+			color: var(--muted);
+			border: 1px dashed var(--line);
+		}
+
+		#toastContainer {
+			position: fixed;
+			top: 22px;
+			right: 22px;
+			z-index: 10;
+			display: grid;
+			gap: 10px;
+			width: min(360px, calc(100% - 28px));
+		}
+
+		.toast {
+			position: relative;
+			display: grid;
+			grid-template-columns: 30px 1fr 24px;
+			gap: 10px;
+			align-items: start;
+			padding: 14px 14px 17px;
+			color: var(--ink);
+			background: rgba(255, 255, 255, 0.97);
+			border: 1px solid var(--line);
+			border-left: 4px solid var(--green);
+			border-radius: 9px;
+			box-shadow: 0 16px 35px rgba(24, 34, 48, 0.16);
+			animation: toast-in 260ms ease both;
+		}
+
+		.toast.error {
+			border-left-color: var(--danger);
+		}
+
+		.toast-icon {
+			display: grid;
+			width: 28px;
+			height: 28px;
+			place-items: center;
+			color: white;
+			background: var(--green);
+			border-radius: 50%;
+			font-weight: 800;
+		}
+
+		.toast.error .toast-icon {
+			background: var(--danger);
+		}
+
+		.toast-message {
+			padding-top: 4px;
+			font-size: 0.88rem;
+			line-height: 1.35;
+		}
+
+		.toast-close {
+			padding: 0;
+			color: var(--muted);
+			background: transparent;
+			font-size: 1.25rem;
+			line-height: 1;
+		}
+
+		.toast-close:hover {
+			color: var(--ink);
+			background: transparent;
+			box-shadow: none;
+			transform: none;
+		}
+
+		.toast-progress {
+			position: absolute;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			height: 3px;
+			background: var(--green);
+			animation: toast-progress 2s linear both;
+		}
+
+		.toast.error .toast-progress {
+			background: var(--danger);
+		}
+
+		.ticket-modal[hidden] {
+			display: none;
+		}
+
+		.ticket-modal {
+			position: fixed;
+			inset: 0;
+			z-index: 20;
+			display: grid;
+			padding: 20px;
+			place-items: center;
+			background: rgba(24, 34, 48, 0.48);
+			animation: modal-in 180ms ease both;
+		}
+
+		.ticket-modal-card {
+			position: relative;
+			width: min(460px, 100%);
+			padding: 30px;
+			background: var(--surface);
+			border: 1px solid var(--line);
+			border-top: 5px solid var(--green);
+			border-radius: 10px;
+			box-shadow: 0 24px 70px rgba(24, 34, 48, 0.24);
+		}
+
+		.ticket-modal-card h2 {
+			margin: 6px 0 22px;
+			font-size: 1.7rem;
+		}
+
+		.ticket-modal-close {
+			position: absolute;
+			top: 12px;
+			right: 14px;
+			width: 32px;
+			height: 32px;
+			color: var(--muted);
+			background: transparent;
+			font-size: 1.4rem;
+			line-height: 1;
+		}
+
+		.ticket-modal-close:hover {
+			color: var(--ink);
+			background: #eef2f7;
+			box-shadow: none;
+			transform: none;
+		}
+
+		.ticket-meta {
+			display: grid;
+			gap: 12px;
+			margin: 0;
+		}
+
+		.ticket-meta-row {
+			display: flex;
+			justify-content: space-between;
+			gap: 20px;
+			padding-bottom: 10px;
+			border-bottom: 1px solid var(--line);
+		}
+
+		.ticket-meta-row dt {
+			color: var(--muted);
+		}
+
+		.ticket-meta-row dd {
+			margin: 0;
+			color: var(--ink);
+			font-weight: 700;
+			text-align: right;
+		}
+
+		.ticket-seat {
+			color: var(--blue) !important;
+			font-size: 1.2rem;
+		}
+
+		.ticket-seat-list {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: flex-end;
+			gap: 6px;
+		}
+
+		.ticket-seat-item {
+			padding: 4px 8px;
+			color: var(--blue);
+			background: #e8efff;
+			border-radius: 5px;
+			font-size: 0.95rem;
+		}
+
+		@keyframes modal-in {
+			from { opacity: 0; }
+			to { opacity: 1; }
+		}
+
+		@keyframes toast-in {
+			from { opacity: 0; transform: translateX(20px); }
+			to { opacity: 1; transform: translateX(0); }
+		}
+
+		@keyframes toast-progress {
+			from { width: 100%; }
+			to { width: 0; }
+		}
+
+		@media (max-width: 700px) {
+			.access-screen {
+				padding: 28px 14px;
+			}
+
+			.access-brand {
+				margin-bottom: 48px;
+			}
+
+			.access-options {
+				grid-template-columns: 1fr;
+			}
+
+			.shell {
+				width: min(100% - 28px, 560px);
+			}
+
+			header, .wallet-controls {
+				align-items: flex-start;
+				flex-direction: column;
+			}
+
+			.wallet-controls {
+				width: 100%;
+			}
+
+			#connectWalletBtn {
+				width: 100%;
+			}
+
+			main {
+				padding-top: 36px;
+			}
+
+			.content-grid {
+				grid-template-columns: 1fr;
+			}
+
+			.logs-panel {
+				grid-column: auto;
+			}
+
+			.event-card {
+				grid-template-columns: 1fr;
+			}
+
+			#eventImage {
+				aspect-ratio: 16 / 9;
+			}
+
+			#toastContainer {
+				top: 12px;
+				right: 14px;
+		}
+		}
+	</style>
+</head>
+<body>
+	<div class="fps-backdrop" aria-hidden="true">
+		<div class="fps-crosshair"></div>
+	</div>
+	<section id="accessScreen" class="access-screen" aria-labelledby="accessHeading">
+		<div class="access-shell">
+			<div class="access-brand">
+				<div class="access-brand-mark" aria-hidden="true">ET</div>
+				<div>
+					<h1>Blockchain Event Ticketing</h1>
+					<p>Digital access, verified on-chain</p>
+				</div>
+			</div>
+			<div class="access-copy">
+				<p class="eyebrow">Secure event gateway</p>
+				<h2 id="accessHeading">Choose your access.</h2>
+				<p>Enter the ticketing space that matches your role. Every ticket, seat and admission check is verified on the blockchain.</p>
+			</div>
+			<div class="access-options">
+				<button id="customerAccessBtn" class="access-option" type="button">
+					<span class="access-option-icon" aria-hidden="true">C</span>
+					<span><h3>Customer</h3><p>Connect your wallet, purchase VIP seats and view your tickets.</p></span>
+					<span class="access-option-arrow" aria-hidden="true">&#8594;</span>
+				</button>
+				<button id="adminAccessBtn" class="access-option admin" type="button">
+					<span class="access-option-icon" aria-hidden="true">A</span>
+					<span><h3>Admin</h3><p>Open the gate console and validate a ticket by its seat number.</p></span>
+					<span class="access-option-arrow" aria-hidden="true">&#8594;</span>
+				</button>
+			</div>
+		</div>
+	</section>
+	<div id="appShell" class="shell" hidden>
+		<header>
+			<div class="brand">
+				<div class="brand-mark" aria-hidden="true">ET</div>
+				<div>
+					<h1>Blockchain Event Ticketing</h1>
+					<p class="eyebrow">Digital access, verified on-chain</p>
+				</div>
+			</div>
+			<div class="wallet-controls">
+				<button id="switchRoleBtn" type="button">Switch role</button>
+				<button id="connectWalletBtn" type="button">Connect MetaMask</button>
+				<span id="walletAddress" aria-live="polite">Wallet not connected</span>
+			</div>
+		</header>
+
+		<main>
+			<section class="intro" aria-labelledby="pageHeading">
+				<h2 id="pageHeading">Your pass to the next big thing.</h2>
+				<p>Purchase a verifiable event ticket, then present it at the gate for a fast on-chain admission check.</p>
+			</section>
+
+			<div class="content-grid">
+				<section class="panel" id="customerSection" aria-labelledby="customerHeading">
+					<h3 id="customerHeading">Customer Section</h3>
+					<div class="event-card" id="eventInfo">
+						<img id="eventImage" src="event-artwork.png" alt="Event artwork">
+						<div class="event-details">
+							<h4 id="eventName">Loading event...</h4>
+							<p><strong>Date:</strong> <span id="eventDate">-</span></p>
+							<p><strong>Location:</strong> <span id="eventLocation">-</span></p>
+							<p id="eventDescription">Event details will appear here.</p>
+							<p id="ticketProgress">Tickets Sold: Connect wallet to view...</p>
+						</div>
+					</div>
+					<div class="purchase-controls">
+						<div class="quantity-field">
+							<label for="ticketQuantity">Quantity</label>
+							<input id="ticketQuantity" type="number" min="1" max="5" value="1">
+						</div>
+						<button id="buyTicketBtn" type="button">Buy Tickets</button>
+						<button id="myTicketsBtn" type="button">My Tickets</button>
+					</div>
+				</section>
+
+				<section class="panel" id="adminSection" aria-labelledby="adminHeading">
+					<h3 id="adminHeading">Admin Section</h3>
+					<label for="tokenIdInput">Token ID</label>
+					<input id="tokenIdInput" name="tokenId" type="number" min="1" step="1" placeholder="Enter token ID">
+					<div class="action-row">
+						<button id="admitTicketBtn" type="button">Scan &amp; Admit Ticket</button>
+					</div>
+					<div id="pendingTicketsPanel" class="pending-tickets">
+						<div class="pending-tickets-heading">
+							<h4>Tickets waiting for admission</h4>
+							<span id="pendingTicketsCount" class="pending-count">0</span>
+						</div>
+						<ul id="pendingTicketsList" class="pending-tickets-list" aria-live="polite">
+							<li><p class="pending-empty">Loading ticket queue...</p></li>
+						</ul>
+					</div>
+				</section>
+
+				<section class="panel logs-panel" aria-labelledby="logsHeading">
+					<h3 id="logsHeading">Event Logs</h3>
+					<ul id="eventLogs" aria-live="polite" aria-label="Ticket activity logs">
+						<li class="empty-log" id="emptyLog">No ticket activity yet.</li>
+					</ul>
+				</section>
+			</div>
+		</main>
+	</div>
+	<div id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
+	<div id="ticketModal" class="ticket-modal" role="dialog" aria-modal="true" aria-labelledby="ticketModalTitle" hidden>
+		<div class="ticket-modal-card">
+			<button id="ticketModalClose" class="ticket-modal-close" type="button" aria-label="Close ticket details">&times;</button>
+			<p class="eyebrow" id="ticketModalStatus">Ticket confirmed</p>
+			<h2 id="ticketModalTitle">Your event ticket</h2>
+			<dl class="ticket-meta">
+				<div class="ticket-meta-row"><dt>Seats</dt><dd id="ticketModalSeats" class="ticket-seat-list"><span class="ticket-seat-item">VIP-01</span></dd></div>
+				<div class="ticket-meta-row"><dt>Event</dt><dd id="ticketModalEvent">Blockchain Event Ticketing</dd></div>
+				<div class="ticket-meta-row"><dt>Date</dt><dd id="ticketModalDate">-</dd></div>
+				<div class="ticket-meta-row"><dt>Time</dt><dd id="ticketModalTime">19:00</dd></div>
+				<div class="ticket-meta-row"><dt>Location</dt><dd id="ticketModalLocation">-</dd></div>
+			</dl>
+		</div>
+	</div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.5/ethers.umd.min.js"></script>
+	<script src="app.js"></script>
+</body>
+</html>

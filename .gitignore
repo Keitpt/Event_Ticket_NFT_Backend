@@ -1,0 +1,6 @@
+.env
+privatekey.env
+node_modules/
+ticketing-*.sqlite
+ticketing-*.sqlite-shm
+ticketing-*.sqlite-wal
